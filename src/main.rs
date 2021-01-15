@@ -39,11 +39,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut available_len = args.max_len - 2; // max_words is also number of trailing dashes, 2 is the digit suffix
 
-    let mut rando = rand::thread_rng();
+    let mut rng = rand::thread_rng();
     let mut words = vec![];
 
     loop {
-        let index = rando.gen_range(0, lines.len());
+        let index = rng.gen_range(0, lines.len());
         let word = lines[index];
 
         if args.verbose {
@@ -92,16 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let mut suffix;
-
-    loop {
-        suffix = rando.gen_range(0, 10);
-
-        if suffix > 0 {
-            break;
-        }
-    }
-
+    let suffix = rng.gen_range(1, 100);
     pwd.push_str(format!("-{:02}", suffix).as_str());
 
     if args.omit_newline {
