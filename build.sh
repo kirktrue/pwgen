@@ -1,12 +1,8 @@
 #!/bin/bash -e
 
-VERSION=v$(grep "^version = " Cargo.toml | cut -d\" -f 2)
-KERNEL=$(echo $(uname -s) | tr '[:upper:]' '[:lower:]')
+cargo build
 
-# This is just for compatibility with the Go version...
-MACHINE=amd64
+version=$(grep ^version Cargo.toml | sed "s/\"//g" | awk '{print "v"$3}')
 
-RELEASE_NAME=pwgen-$VERSION-$KERNEL-$MACHINE
-
-cargo build --release
-cp target/release/pwgen $RELEASE_NAME
+git tag "$version"
+git push origin main --tags

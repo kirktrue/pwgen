@@ -1,31 +1,37 @@
 use rand::Rng;
 use std::error::Error;
 use std::process;
+use rand::prelude::ThreadRng;
 use structopt::StructOpt;
 
 const MIN_LENGTH: usize = 8;
 
 struct Pwgen {
-    lines: Vec<String>,
+    words: Vec<String>,
+    rng: ThreadRng,
 }
 
 impl Pwgen {
-    pub fn generate_password(self, max_len: usize, verbose: bool) -> String {
-        let mut pwd = String::new();
-        let mut rando = rand::thread_rng();
 
-        loop {
-            let index = rando.gen_range(0..self.lines.len()) as usize;
-            let word = self.lines[index].clone();
-            let token_len = word.len() + 1;
+    pub fn new(words: Vec<String>) -> Pwgen {
+        let rng = rand::thread_rng();
+        Pwgen{ words, rng }
+    }
+
+    pub fn generate_password(&mut self, max_len: usize, max_words: u8, max_tries: usize, verbose: bool) -> String {
+        let mut pwd = String::new();
+        let mut curr_words = 0;
+
+        for curr_try in 1..max_tries {
+            let index = self.rng.gen_range(0..self.words.len()) as usize;
+            let word = self.words[index].clone();
 
             if verbose {
-                println!("pwd: {}, word: {}, token_len: {}", pwd, word, token_len);
+                println!("curr_try: {:2}, curr_words: {:2}, max_words: {:2}, max_len: {:2}, curr_len: {:2}, pwd: {:32}, word: {:32}", curr_try, curr_words, max_words, max_len, pwd.len(), pwd, word);
             }
 
             // The extra two characters we reserve here are for the two-digit digit suffix.
-            if token_len > (max_len - pwd.len() - 2) {
-                println!("max_len: {}, pwd (len): {}, token_len: {}, continuing...", max_len, pwd.len(), token_len);
+            if (word.len() + 1) > (max_len - pwd.len() - 2) {
                 continue;
             }
 
@@ -36,27 +42,17 @@ impl Pwgen {
                 pwd.push_str(word.as_str());
             }
 
+            curr_words += 1;
+
             pwd.push('-');
 
-            if verbose {
-                println!("max_len: {}, pwd: {}, word: {}, token_len: {}", max_len, pwd, word, token_len);
-            }
-
-            if max_len - pwd.len() <= 2 {
-                println!("max_len: {}, pwd (len): {}, breaking...", max_len, pwd.len());
+            if curr_words >= max_words || max_len - pwd.len() <= 4 {
                 break;
             }
         }
 
-        loop {
-            let range = 0..10;
-            let suffix:u32 = rando.gen_range(range);
-
-            if suffix > 0 {
-                pwd.push_str(format!("{:02}", suffix).as_str());
-                break;
-            }
-        }
+        let suffix = self.rng.gen_range(0..100) as usize;
+        pwd.push_str(format!("{:02}", suffix).as_str());
 
         if verbose {
             println!("pwd: {}", pwd);
@@ -96,10 +92,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let bytes = include_bytes!("../words.txt");
     let words = String::from_utf8_lossy(bytes);
-    let lines = words.lines().map(|s| s.to_owned()).collect();
+    let words = words.lines().map(|s| s.to_owned()).collect();
 
-    let pwgen = Pwgen{lines};
-    let pwd = pwgen.generate_password(args.max_len, args.verbose);
+    let mut pwgen = Pwgen::new(words);
+    let pwd = pwgen.generate_password(args.max_len, 4, 20, args.verbose);
 
     if args.omit_newline {
         print!("{}", pwd);
@@ -117,14 +113,13 @@ mod tests {
     fn init() -> Pwgen {
         let bytes = include_bytes!("../words.txt");
         let words = String::from_utf8_lossy(bytes);
-        let lines = words.lines().map(|s| s.to_string()).collect();
-        Pwgen { lines }
+        let words = words.lines().map(|s| s.to_string()).collect();
+        Pwgen::new(words)
     }
 
     #[test]
     pub fn test() {
-        let pwgen = init();
-        let password = pwgen.generate_password(32, true);
-        assert_eq!(32, password.len());
+        let mut pwgen = init();
+        pwgen.generate_password(32, 5,20, true);
     }
 }
