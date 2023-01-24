@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed the issue where the numeric extension was only going up to 09
+- Fixed the issue where the numeric extension was only going up to `09`
 
 ## v1.0.2: Initial release in Rust
 
