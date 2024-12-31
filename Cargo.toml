@@ -1,11 +1,11 @@
 [package]
 name = "pwgen"
-version = "1.0.4"
-authors = ["Kirk True <kirk@mustardgrain.com>"]
-edition = "2018"
+version = "1.0.5"
+authors = ["Kirk True <kirk@kirktrue.pro>"]
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand = "0.8.5"
-structopt = "0.3.19"
+structopt = "0.3.26"
