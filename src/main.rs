@@ -1,7 +1,7 @@
+use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::error::Error;
 use std::process;
-use rand::prelude::ThreadRng;
 use structopt::StructOpt;
 
 const MIN_LENGTH: usize = 8;
@@ -12,22 +12,29 @@ struct Pwgen {
 }
 
 impl Pwgen {
-
     pub fn new(words: Vec<String>) -> Pwgen {
         let rng = rand::thread_rng();
-        Pwgen{ words, rng }
+        Pwgen { words, rng }
     }
 
-    pub fn generate_password(&mut self, max_len: usize, max_words: u8, max_tries: usize, verbose: bool) -> String {
+    pub fn generate_password(
+        &mut self,
+        max_len: usize,
+        max_words: usize,
+        max_tries: usize,
+        alliterate: bool,
+        verbose: bool,
+    ) -> String {
         let mut pwd = String::new();
         let mut curr_words = 0;
+        let mut first_letter = String::new();
 
         for curr_try in 1..max_tries {
-            let index = self.rng.gen_range(0..self.words.len()) as usize;
+            let index = self.rng.gen_range(0..self.words.len());
             let word = self.words[index].clone();
 
             if verbose {
-                println!("curr_try: {:2}, curr_words: {:2}, max_words: {:2}, max_len: {:2}, curr_len: {:2}, pwd: {:32}, word: {:32}", curr_try, curr_words, max_words, max_len, pwd.len(), pwd, word);
+                println!("curr_try: {:2}, first_letter: {}, curr_words: {:2}, max_words: {:2}, max_len: {:2}, curr_len: {:2}, pwd: {:32}, word: {:32}", curr_try, first_letter, curr_words, max_words, max_len, pwd.len(), pwd, word);
             }
 
             // The extra two characters we reserve here are for the two-digit digit suffix.
@@ -35,10 +42,18 @@ impl Pwgen {
                 continue;
             }
 
-            if pwd.len() == 0 {
-                pwd.push_str(&word[0..1].to_uppercase());
+            let curr_first_letter = &word[0..1].to_uppercase().to_string();
+
+            if pwd.is_empty() {
+                pwd.push_str(curr_first_letter);
                 pwd.push_str(&word[1..]);
+                first_letter = curr_first_letter.to_string();
             } else {
+                if alliterate && curr_first_letter.ne(&first_letter) {
+                    // Make sure to only create passwords that maintain alliteration
+                    continue;
+                }
+
                 pwd.push_str(word.as_str());
             }
 
@@ -67,19 +82,21 @@ impl Pwgen {
 pub struct Args {
     #[structopt(
         help = "Maximum length of the password",
-        default_value = "32",
+        default_value = "28",
         short = "m",
         long = "max-length"
     )]
     pub max_len: usize,
-    #[structopt(help = "Specify for verbosity", short = "v", long = "verbose")]
-    pub verbose: bool,
+    #[structopt(help = "Generate passwords that start with the same letter", short = "a", long = "alliterate")]
+    pub alliterate: bool,
     #[structopt(
         help = "Do not print (omit) the trailing newline character",
         short = "n",
         long = "newline-omit"
     )]
     pub omit_newline: bool,
+    #[structopt(help = "Output logging", short = "v", long = "verbose")]
+    pub verbose: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -95,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let words = words.lines().map(|s| s.to_owned()).collect();
 
     let mut pwgen = Pwgen::new(words);
-    let pwd = pwgen.generate_password(args.max_len, 4, 20, args.verbose);
+    let pwd = pwgen.generate_password(args.max_len, 3, 1000, args.alliterate, args.verbose);
 
     if args.omit_newline {
         print!("{}", pwd);
@@ -120,6 +137,6 @@ mod tests {
     #[test]
     pub fn test() {
         let mut pwgen = init();
-        pwgen.generate_password(32, 5,20, true);
+        pwgen.generate_password(32, 5, 20, true, true);
     }
 }
